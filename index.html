@@ -24,7 +24,7 @@
   <div id="screen-login" class="card card-custom">
     <div class="card-body p-4 text-center">
       <h4 class="fw-bold mb-1 text-primary">Pengecekan Data Diri Siswa</h4>
-      <p class="text-muted small mb-4">Silakan masuk menggunakan NIS dan Tanggal Lahir Siswa</p>
+      <p class="text-muted small mb-4">Silakan masuk menggunakan NIS dan Password Siswa</p>
       
       <div id="login-alert" class="alert alert-danger d-none small"></div>
 
@@ -109,7 +109,7 @@
 
 </div>
 
-<!-- Loading Overlay Modal -->
+<!-- Loading Overlay -->
 <div class="modal fade" id="loadingModal" data-bs-backdrop="static" tabindex="-1">
   <div class="modal-dialog modal-dialog-centered modal-sm">
     <div class="modal-content text-center p-4">
@@ -122,10 +122,11 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
 <script>
+  // PENGGUNAAN DEPLOYMENT TERBARU ANDA
   const API_URL = "https://script.google.com/macros/s/AKfycbzG5ravSdZ4UUkaStKcoosWA4vy6bpAcQp-ldxGRurZP34J-LMKcUxF5_LwdFGJ6g/exec";
   
   let currentStudentData = null;
-  let loadingModal = new bootstrap.Modal(document.getElementById('loadingModal'));
+  const loadingModal = new bootstrap.Modal(document.getElementById('loadingModal'));
 
   function togglePassword() {
     const passInput = document.getElementById('input-pass');
@@ -139,7 +140,30 @@
     }
   }
 
-  // 1. LOGIN
+  // TEKNIK JSONP (Bypass Keamanan CORS Browser secara Total)
+  function jsonpRequest(params, callback) {
+    const callbackName = 'cb_' + Math.floor(Math.random() * 1000000);
+    params.callback = callbackName;
+
+    window[callbackName] = function(data) {
+      delete window[callbackName];
+      document.body.removeChild(script);
+      callback(data);
+    };
+
+    const queryString = new URLSearchParams(params).toString();
+    const script = document.createElement('script');
+    script.src = `${API_URL}?${queryString}`;
+    script.onerror = function() {
+      delete window[callbackName];
+      document.body.removeChild(script);
+      callback({ status: 'failed', message: 'Gagal terhubung ke Google Apps Script.' });
+    };
+
+    document.body.appendChild(script);
+  }
+
+  // 1. HANDLER LOGIN
   document.getElementById('form-login').addEventListener('submit', function(e) {
     e.preventDefault();
     const nis = document.getElementById('input-nis').value.trim();
@@ -149,26 +173,17 @@
     alertBox.classList.add('d-none');
     loadingModal.show();
 
-    const requestUrl = `${API_URL}?action=login&nis=${encodeURIComponent(nis)}&password=${encodeURIComponent(pass)}`;
-
-    fetch(requestUrl)
-      .then(res => res.json())
-      .then(res => {
-        loadingModal.hide();
-        if (res.status === 'success') {
-          currentStudentData = res.data;
-          renderStudentData();
-          showScreen('screen-detail');
-        } else {
-          alertBox.textContent = res.message;
-          alertBox.classList.remove('d-none');
-        }
-      })
-      .catch(err => {
-        loadingModal.hide();
-        alertBox.textContent = "Gagal memproses data. Periksa koneksi internet atau status deployment Apps Script Anda.";
+    jsonpRequest({ action: 'login', nis: nis, password: pass }, function(res) {
+      loadingModal.hide();
+      if (res.status === 'success') {
+        currentStudentData = res.data;
+        renderStudentData();
+        showScreen('screen-detail');
+      } else {
+        alertBox.textContent = res.message;
         alertBox.classList.remove('d-none');
-      });
+      }
+    });
   });
 
   // 2. RENDER DETAIL DATA SISWA
@@ -195,19 +210,16 @@
     if (!confirm("Apakah Anda yakin seluruh data sudah benar?")) return;
     loadingModal.show();
 
-    const requestUrl = `${API_URL}?action=saveLog&statusValidasi=Data Sesuai&nis=${encodeURIComponent(currentStudentData.NIS || currentStudentData.NIPD || '')}&namaSiswa=${encodeURIComponent(currentStudentData.Nama || currentStudentData.NAMA || '')}`;
-
-    fetch(requestUrl)
-      .then(res => res.json())
-      .then(res => {
-        loadingModal.hide();
-        alert("Terima kasih! Konfirmasi data sesuai berhasil disimpan.");
-        location.reload();
-      })
-      .catch(err => {
-        loadingModal.hide();
-        alert("Terjadi kesalahan saat menyimpan respon.");
-      });
+    jsonpRequest({
+      action: 'saveLog',
+      statusValidasi: 'Data Sesuai',
+      nis: currentStudentData.NIS || currentStudentData.NIPD || '',
+      namaSiswa: currentStudentData.Nama || currentStudentData.NAMA || ''
+    }, function(res) {
+      loadingModal.hide();
+      alert("Terima kasih! Konfirmasi data sesuai berhasil disimpan.");
+      location.reload();
+    });
   }
 
   // 4. SHOW EDIT
@@ -239,19 +251,19 @@
     });
 
     const catatan = document.getElementById('edit-catatan').value;
-    const requestUrl = `${API_URL}?action=saveLog&statusValidasi=Ada Perubahan&nis=${encodeURIComponent(currentStudentData.NIS || currentStudentData.NIPD || '')}&namaSiswa=${encodeURIComponent(currentStudentData.Nama || currentStudentData.NAMA || '')}&perubahan=${encodeURIComponent(JSON.stringify(changes))}&catatan=${encodeURIComponent(catatan)}`;
 
-    fetch(requestUrl)
-      .then(res => res.json())
-      .then(res => {
-        loadingModal.hide();
-        alert("Usulan perubahan data berhasil dikirim!");
-        location.reload();
-      })
-      .catch(err => {
-        loadingModal.hide();
-        alert("Terjadi kesalahan saat menyimpan perubahan.");
-      });
+    jsonpRequest({
+      action: 'saveLog',
+      statusValidasi: 'Ada Perubahan',
+      nis: currentStudentData.NIS || currentStudentData.NIPD || '',
+      namaSiswa: currentStudentData.Nama || currentStudentData.NAMA || '',
+      perubahan: JSON.stringify(changes),
+      catatan: catatan
+    }, function(res) {
+      loadingModal.hide();
+      alert("Usulan perubahan data berhasil dikirim!");
+      location.reload();
+    });
   });
 
   function showScreen(screenId) {
