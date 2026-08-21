@@ -4,7 +4,6 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Pengecekan Data Diri Siswa</title>
-  <!-- Bootstrap 5 CSS & Bootstrap Icons -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
   <style>
@@ -21,7 +20,7 @@
 
 <div class="container py-4 col-md-8 col-lg-6">
 
-  <!-- ================= LAYAR 1: LOGIN ================= -->
+  <!-- LAYAR 1: LOGIN -->
   <div id="screen-login" class="card card-custom">
     <div class="card-body p-4 text-center">
       <h4 class="fw-bold mb-1 text-primary">Pengecekan Data Diri Siswa</h4>
@@ -35,26 +34,25 @@
           <label for="input-nis">NIS Siswa</label>
         </div>
         
-        <!-- Input Password dengan Fitur Toggle Show/Hide -->
         <div class="mb-4 text-start">
           <label for="input-pass" class="form-label small text-muted">Password (Format: YYYYMMDD)</label>
           <div class="input-group">
             <input type="password" class="form-control" id="input-pass" placeholder="Contoh: 20100315" required>
-            <button class="btn btn-outline-secondary" type="button" id="btn-toggle-pass" onclick="togglePassword()">
+            <button class="btn btn-outline-secondary" type="button" onclick="togglePassword()">
               <i class="bi bi-eye" id="eye-icon"></i>
             </button>
           </div>
           <div class="form-text text-muted small ms-1">Contoh: 15 Maret 2010 ditulis <code>20100315</code></div>
         </div>
 
-        <button type="submit" id="btn-login" class="btn btn-primary w-100 py-2 fw-semibold">
+        <button type="submit" class="btn btn-primary w-100 py-2 fw-semibold">
           Masuk & Cek Data
         </button>
       </form>
     </div>
   </div>
 
-  <!-- ================= LAYAR 2: TAMPIL DATA & VALIDASI ================= -->
+  <!-- LAYAR 2: TAMPIL DATA & VALIDASI -->
   <div id="screen-detail" class="card card-custom d-none">
     <div class="p-3 header-bg d-flex justify-content-between align-items-center">
       <div>
@@ -85,7 +83,7 @@
     </div>
   </div>
 
-  <!-- ================= LAYAR 3: FORM EDIT DATA ================= -->
+  <!-- LAYAR 3: FORM EDIT DATA -->
   <div id="screen-edit" class="card card-custom d-none">
     <div class="p-3 bg-warning text-dark header-bg rounded-top d-flex justify-content-between align-items-center">
       <h5 class="mb-0 fw-bold">Form Perubahan Data</h5>
@@ -102,7 +100,7 @@
           <textarea id="edit-catatan" class="form-control" rows="2" placeholder="Contoh: Alamat pindah rumah, HP aktif ganti"></textarea>
         </div>
 
-        <button type="submit" id="btn-submit-edit" class="btn btn-warning text-white w-100 py-2 fw-semibold">
+        <button type="submit" class="btn btn-warning text-white w-100 py-2 fw-semibold">
           Simpan Usulan Perubahan
         </button>
       </form>
@@ -128,23 +126,39 @@
   let currentStudentData = null;
   const loadingModal = new bootstrap.Modal(document.getElementById('loadingModal'));
 
-  // FITUR TOGGLE LIHAT PASSWORD
   function togglePassword() {
     const passInput = document.getElementById('input-pass');
     const eyeIcon = document.getElementById('eye-icon');
-    
     if (passInput.type === 'password') {
       passInput.type = 'text';
-      eyeIcon.classList.remove('bi-eye');
-      eyeIcon.classList.add('bi-eye-slash');
+      eyeIcon.className = 'bi bi-eye-slash';
     } else {
       passInput.type = 'password';
-      eyeIcon.classList.remove('bi-eye-slash');
-      eyeIcon.classList.add('bi-eye');
+      eyeIcon.className = 'bi bi-eye';
     }
   }
 
-  // 1. HANDLER FORM LOGIN
+  // FUNSI HELPER REQUEST UNTUK MENGHINDARI CORS ERROR
+  function sendRequest(params, callback) {
+    const callbackName = 'jsonp_cb_' + Math.round(100000 * Math.random());
+    window[callbackName] = function(data) {
+      delete window[callbackName];
+      document.body.removeChild(script);
+      callback(data);
+    };
+
+    const queryString = new URLSearchParams(params).toString();
+    const script = document.createElement('script');
+    script.src = `${API_URL}?${queryString}&callback=${callbackName}`;
+    script.onerror = function() {
+      delete window[callbackName];
+      document.body.removeChild(script);
+      callback({ status: 'error', message: 'Gagal terhubung ke server Google Apps Script.' });
+    };
+    document.body.appendChild(script);
+  }
+
+  // 1. LOGIN
   document.getElementById('form-login').addEventListener('submit', function(e) {
     e.preventDefault();
     const nis = document.getElementById('input-nis').value.trim();
@@ -154,27 +168,20 @@
     alertBox.classList.add('d-none');
     loadingModal.show();
 
-    fetch(`${API_URL}?action=login&nis=${nis}&password=${pass}`)
-      .then(res => res.json())
-      .then(res => {
-        loadingModal.hide();
-        if (res.status === 'success') {
-          currentStudentData = res.data;
-          renderStudentData();
-          showScreen('screen-detail');
-        } else {
-          alertBox.textContent = res.message;
-          alertBox.classList.remove('d-none');
-        }
-      })
-      .catch(err => {
-        loadingModal.hide();
-        alertBox.textContent = "Gagal terhubung ke server. Periksa koneksi internet Anda.";
+    sendRequest({ action: 'login', nis: nis, password: pass }, function(res) {
+      loadingModal.hide();
+      if (res.status === 'success') {
+        currentStudentData = res.data;
+        renderStudentData();
+        showScreen('screen-detail');
+      } else {
+        alertBox.textContent = res.message;
         alertBox.classList.remove('d-none');
-      });
+      }
+    });
   });
 
-  // 2. RENDER DETAIL DATA SISWA
+  // 2. RENDER DETAIL
   function renderStudentData() {
     document.getElementById('disp-nama-header').textContent = currentStudentData.Nama || currentStudentData.NAMA || 'Detail Siswa';
     document.getElementById('disp-nis-header').textContent = `NIS: ${currentStudentData.NIS || currentStudentData.NIPD || '-'}`;
@@ -184,99 +191,71 @@
 
     for (const [key, value] of Object.entries(currentStudentData)) {
       if (key.startsWith('Kolom_')) continue;
-      
-      const rowHtml = `
+      container.insertAdjacentHTML('beforeend', `
         <div class="row data-row align-items-center">
           <div class="col-sm-4 data-label">${key}</div>
           <div class="col-sm-8 data-value">${value || '-'}</div>
         </div>
-      `;
-      container.insertAdjacentHTML('beforeend', rowHtml);
+      `);
     }
   }
 
-  // 3. KONFIRMASI DATA SESUAI
+  // 3. SIMPAN VALIDASI (SESUAI)
   function confirmValidData() {
     if (!confirm("Apakah Anda yakin seluruh data sudah benar?")) return;
-
     loadingModal.show();
-    const payload = {
-      statusValidasi: "Data Sesuai",
+
+    sendRequest({
+      action: 'saveLog',
+      statusValidasi: 'Data Sesuai',
       nis: currentStudentData.NIS || currentStudentData.NIPD,
       namaSiswa: currentStudentData.Nama || currentStudentData.NAMA
-    };
-
-    fetch(API_URL, {
-      method: 'POST',
-      body: JSON.stringify(payload)
-    })
-    .then(res => res.json())
-    .then(res => {
+    }, function(res) {
       loadingModal.hide();
       alert("Terima kasih! Konfirmasi data sesuai berhasil disimpan.");
       location.reload();
-    })
-    .catch(err => {
-      loadingModal.hide();
-      alert("Terjadi kesalahan saat menyimpan respon.");
     });
   }
 
-  // 4. SHOW & RENDER FORM EDIT
+  // 4. SHOW EDIT
   function showEditScreen() {
     const editContainer = document.getElementById('edit-fields-container');
     editContainer.innerHTML = '';
 
     for (const [key, value] of Object.entries(currentStudentData)) {
       if (key.startsWith('Kolom_')) continue;
-      
-      const inputHtml = `
+      editContainer.insertAdjacentHTML('beforeend', `
         <div class="mb-3">
           <label class="form-label small fw-semibold">${key}</label>
           <input type="text" class="form-control edit-field" data-key="${key}" value="${value || ''}">
         </div>
-      `;
-      editContainer.insertAdjacentHTML('beforeend', inputHtml);
+      `);
     }
     showScreen('screen-edit');
   }
 
-  // 5. SIMPAN PERUBAHAN DATA
+  // 5. SIMPAN EDIT
   document.getElementById('form-edit').addEventListener('submit', function(e) {
     e.preventDefault();
     if (!confirm("Kirim usulan perubahan data ini?")) return;
-
     loadingModal.show();
-    
+
     const changes = {};
-    const inputs = document.querySelectorAll('.edit-field');
-    inputs.forEach(input => {
-      const key = input.getAttribute('data-key');
-      const val = input.value.trim();
-      changes[key] = val;
+    document.querySelectorAll('.edit-field').forEach(input => {
+      changes[input.getAttribute('data-key')] = input.value.trim();
     });
 
-    const payload = {
-      statusValidasi: "Ada Perubahan",
+    sendRequest({
+      action: 'saveLog',
+      statusValidasi: 'Ada Perubahan',
       nis: currentStudentData.NIS || currentStudentData.NIPD,
       namaSiswa: currentStudentData.Nama || currentStudentData.NAMA,
-      perubahan: changes,
+      perubahan: JSON.stringify(changes),
       catatan: document.getElementById('edit-catatan').value
-    };
-
-    fetch(API_URL, {
-      method: 'POST',
-      body: JSON.stringify(payload)
-    })
-    .then(res => res.json())
-    .then(res => {
+    }, function(res) {
       loadingModal.hide();
       alert("Usulan perubahan data berhasil dikirim!");
       location.reload();
-    })
-    .catch(err => {
-      loadingModal.hide();
-      alert("Terjadi kesalahan saat menyimpan perubahan.");
     });
   });
 
@@ -284,14 +263,11 @@
     document.getElementById('screen-login').classList.add('d-none');
     document.getElementById('screen-detail').classList.add('d-none');
     document.getElementById('screen-edit').classList.add('d-none');
-    
     document.getElementById(screenId).classList.remove('d-none');
     window.scrollTo(0, 0);
   }
 
-  function backToDetail() {
-    showScreen('screen-detail');
-  }
+  function backToDetail() { showScreen('screen-detail'); }
 </script>
 </body>
 </html>
