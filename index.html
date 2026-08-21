@@ -4,7 +4,6 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Pengecekan Data Diri Siswa</title>
-  <!-- Bootstrap 5 CSS & Icons -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
   <style>
@@ -21,7 +20,7 @@
 
 <div class="container py-4 col-md-8 col-lg-6">
 
-  <!-- ================= LAYAR 1: LOGIN ================= -->
+  <!-- LAYAR 1: LOGIN -->
   <div id="screen-login" class="card card-custom">
     <div class="card-body p-4 text-center">
       <h4 class="fw-bold mb-1 text-primary">Pengecekan Data Diri Siswa</h4>
@@ -53,7 +52,7 @@
     </div>
   </div>
 
-  <!-- ================= LAYAR 2: TAMPIL DATA & VALIDASI ================= -->
+  <!-- LAYAR 2: TAMPIL DATA & VALIDASI -->
   <div id="screen-detail" class="card card-custom d-none">
     <div class="p-3 header-bg d-flex justify-content-between align-items-center">
       <div>
@@ -84,7 +83,7 @@
     </div>
   </div>
 
-  <!-- ================= LAYAR 3: FORM EDIT DATA ================= -->
+  <!-- LAYAR 3: FORM EDIT DATA -->
   <div id="screen-edit" class="card card-custom d-none">
     <div class="p-3 bg-warning text-dark header-bg rounded-top d-flex justify-content-between align-items-center">
       <h5 class="mb-0 fw-bold">Form Perubahan Data</h5>
@@ -110,7 +109,7 @@
 
 </div>
 
-<!-- Loading Overlay -->
+<!-- Loading Overlay Modal -->
 <div class="modal fade" id="loadingModal" data-bs-backdrop="static" tabindex="-1">
   <div class="modal-dialog modal-dialog-centered modal-sm">
     <div class="modal-content text-center p-4">
@@ -123,13 +122,11 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
 <script>
-  // URL Web App Terbaru Anda
   const API_URL = "https://script.google.com/macros/s/AKfycbzG5ravSdZ4UUkaStKcoosWA4vy6bpAcQp-ldxGRurZP34J-LMKcUxF5_LwdFGJ6g/exec";
   
   let currentStudentData = null;
-  const loadingModal = new bootstrap.Modal(document.getElementById('loadingModal'));
+  let loadingModal = new bootstrap.Modal(document.getElementById('loadingModal'));
 
-  // Fitur Lihat Password
   function togglePassword() {
     const passInput = document.getElementById('input-pass');
     const eyeIcon = document.getElementById('eye-icon');
@@ -142,29 +139,6 @@
     }
   }
 
-  // Fungsi Pemanggil JSONP (Melompati CORS)
-  function callAPI(params, callback) {
-    const cbName = 'cb_' + Math.round(100000 * Math.random());
-    window[cbName] = function(data) {
-      delete window[cbName];
-      document.body.removeChild(script);
-      callback(data);
-    };
-
-    params.callback = cbName;
-    const queryString = new URLSearchParams(params).toString();
-    
-    const script = document.createElement('script');
-    script.src = `${API_URL}?${queryString}`;
-    script.onerror = function() {
-      delete window[cbName];
-      document.body.removeChild(script);
-      callback({ status: 'error', message: 'Gagal terhubung ke Google Apps Script.' });
-    };
-    
-    document.body.appendChild(script);
-  }
-
   // 1. LOGIN
   document.getElementById('form-login').addEventListener('submit', function(e) {
     e.preventDefault();
@@ -175,20 +149,29 @@
     alertBox.classList.add('d-none');
     loadingModal.show();
 
-    callAPI({ action: 'login', nis: nis, password: pass }, function(res) {
-      loadingModal.hide();
-      if (res.status === 'success') {
-        currentStudentData = res.data;
-        renderStudentData();
-        showScreen('screen-detail');
-      } else {
-        alertBox.textContent = res.message;
+    const requestUrl = `${API_URL}?action=login&nis=${encodeURIComponent(nis)}&password=${encodeURIComponent(pass)}`;
+
+    fetch(requestUrl)
+      .then(res => res.json())
+      .then(res => {
+        loadingModal.hide();
+        if (res.status === 'success') {
+          currentStudentData = res.data;
+          renderStudentData();
+          showScreen('screen-detail');
+        } else {
+          alertBox.textContent = res.message;
+          alertBox.classList.remove('d-none');
+        }
+      })
+      .catch(err => {
+        loadingModal.hide();
+        alertBox.textContent = "Gagal memproses data. Periksa koneksi internet atau status deployment Apps Script Anda.";
         alertBox.classList.remove('d-none');
-      }
-    });
+      });
   });
 
-  // 2. RENDER DETAIL DATA
+  // 2. RENDER DETAIL DATA SISWA
   function renderStudentData() {
     document.getElementById('disp-nama-header').textContent = currentStudentData.Nama || currentStudentData.NAMA || 'Detail Siswa';
     document.getElementById('disp-nis-header').textContent = `NIS: ${currentStudentData.NIS || currentStudentData.NIPD || '-'}`;
@@ -207,21 +190,24 @@
     }
   }
 
-  // 3. SIMPAN LOG (DATA SESUAI)
+  // 3. KONFIRMASI DATA SESUAI
   function confirmValidData() {
     if (!confirm("Apakah Anda yakin seluruh data sudah benar?")) return;
     loadingModal.show();
 
-    callAPI({
-      action: 'saveLog',
-      statusValidasi: 'Data Sesuai',
-      nis: currentStudentData.NIS || currentStudentData.NIPD || '',
-      namaSiswa: currentStudentData.Nama || currentStudentData.NAMA || ''
-    }, function(res) {
-      loadingModal.hide();
-      alert("Terima kasih! Konfirmasi data sesuai berhasil disimpan.");
-      location.reload();
-    });
+    const requestUrl = `${API_URL}?action=saveLog&statusValidasi=Data Sesuai&nis=${encodeURIComponent(currentStudentData.NIS || currentStudentData.NIPD || '')}&namaSiswa=${encodeURIComponent(currentStudentData.Nama || currentStudentData.NAMA || '')}`;
+
+    fetch(requestUrl)
+      .then(res => res.json())
+      .then(res => {
+        loadingModal.hide();
+        alert("Terima kasih! Konfirmasi data sesuai berhasil disimpan.");
+        location.reload();
+      })
+      .catch(err => {
+        loadingModal.hide();
+        alert("Terjadi kesalahan saat menyimpan respon.");
+      });
   }
 
   // 4. SHOW EDIT
@@ -241,7 +227,7 @@
     showScreen('screen-edit');
   }
 
-  // 5. SIMPAN PERUBAHAN
+  // 5. SIMPAN EDIT
   document.getElementById('form-edit').addEventListener('submit', function(e) {
     e.preventDefault();
     if (!confirm("Kirim usulan perubahan data ini?")) return;
@@ -252,18 +238,20 @@
       changes[input.getAttribute('data-key')] = input.value.trim();
     });
 
-    callAPI({
-      action: 'saveLog',
-      statusValidasi: 'Ada Perubahan',
-      nis: currentStudentData.NIS || currentStudentData.NIPD || '',
-      namaSiswa: currentStudentData.Nama || currentStudentData.NAMA || '',
-      perubahan: JSON.stringify(changes),
-      catatan: document.getElementById('edit-catatan').value
-    }, function(res) {
-      loadingModal.hide();
-      alert("Usulan perubahan data berhasil dikirim!");
-      location.reload();
-    });
+    const catatan = document.getElementById('edit-catatan').value;
+    const requestUrl = `${API_URL}?action=saveLog&statusValidasi=Ada Perubahan&nis=${encodeURIComponent(currentStudentData.NIS || currentStudentData.NIPD || '')}&namaSiswa=${encodeURIComponent(currentStudentData.Nama || currentStudentData.NAMA || '')}&perubahan=${encodeURIComponent(JSON.stringify(changes))}&catatan=${encodeURIComponent(catatan)}`;
+
+    fetch(requestUrl)
+      .then(res => res.json())
+      .then(res => {
+        loadingModal.hide();
+        alert("Usulan perubahan data berhasil dikirim!");
+        location.reload();
+      })
+      .catch(err => {
+        loadingModal.hide();
+        alert("Terjadi kesalahan saat menyimpan perubahan.");
+      });
   });
 
   function showScreen(screenId) {
