@@ -156,26 +156,13 @@
   let currentStudentData = null;
   const loadingModal = new bootstrap.Modal(document.getElementById('loadingModal'));
 
-  // Daftar Resmi Opsi Kebutuhan Khusus DAPODIK
-  const listKebutuhanKhusus = [
-    "Tidak ada",
-    "netra (A)",
-    "rungu (B)",
-    "grahita ringan (C)",
-    "grahita sedang (C1)",
-    "daksa ringan (D)",
-    "daksa sedang (D1)",
-    "laras (E)",
-    "wicara (F)",
-    "hyperaktif (H)",
-    "cerdas istimewa (I)",
-    "bakat istimewa (J)",
-    "kesulitan belajar (K)",
-    "narkoba (N)",
-    "indigo (O)",
-    "down syndrome (P)",
-    "autis (Q)"
-  ];
+  // REFERENSI MASTER DROPDOWN DAPODIK
+  const listKebutuhanKhusus = ["Tidak ada", "netra (A)", "rungu (B)", "grahita ringan (C)", "grahita sedang (C1)", "daksa ringan (D)", "daksa sedang (D1)", "laras (E)", "wicara (F)", "hyperaktif (H)", "cerdas istimewa (I)", "bakat istimewa (J)", "kesulitan belajar (K)", "narkoba (N)", "indigo (O)", "down syndrome (P)", "autis (Q)"];
+  const listTempatTinggal = ["Bersama orang tua", "Wali", "Kost", "Asrama", "Panti asuhan", "Pesantren", "Lainnya"];
+  const listTransportasi = ["Jalan kaki", "Angkutan umum/bus/pete-pete", "Mobil/bus antar jemput", "Kereta api", "Ojek", "Andong/bendi/sado/dokar/delman/becak", "Perahu penyeberangan/rakit/getek", "Kuda", "Sepeda", "Sepeda motor", "Mobil pribadi", "Lainnya"];
+  const listPendidikan = ["Tidak Sekolah", "Putus SD", "SD / sederajat", "SMP / sederajat", "SMA / sederajat", "D1", "D2", "D3", "D4", "S1", "S2", "S3", "Informal", "Non formal", "Paket A", "Paket B", "Paket C", "Lainnya"];
+  const listPekerjaan = ["Tidak bekerja", "Nelayan", "Petani", "Peternak", "PNS/TNI/Polri", "Karyawan Swasta", "Pedagang Kecil", "Pedagang Besar", "Wiraswasta", "Buruh", "Pensiunan", "Tenaga Kerja Indonesia", "Karyawan BUMN", "Aparatur Sipil Negara", "Tidak dapat diterapkan", "Sudah Meninggal", "Lainnya"];
+  const listPenghasilan = ["Kurang dari Rp. 500,000", "Rp. 500,000 - Rp. 999,999", "Rp. 1,000,000 - Rp. 1,999,999", "Rp. 2,000,000 - Rp. 4,999,999", "Rp. 5,000,000 - Rp. 20,000,000", "Lebih dari Rp. 20,000,000", "Tidak Berpenghasilan"];
 
   function togglePassword() {
     const passInput = document.getElementById('input-pass');
@@ -311,7 +298,17 @@
     });
   }
 
-  // 4. SHOW EDIT SCREEN (DENGAN INPUT KALENDER & DROPDOWN KEBUTUHAN KHUSUS)
+  // Helper Pembuat Dropdown Dinamis
+  function createSelectHtml(key, value, optionsArray) {
+    let optionsHtml = '<option value="">-- Pilih --</option>';
+    optionsArray.forEach(opt => {
+      const isSelected = (value && value.trim().toLowerCase() === opt.toLowerCase()) ? 'selected' : '';
+      optionsHtml += `<option value="${opt}" ${isSelected}>${opt}</option>`;
+    });
+    return `<select class="form-select edit-field" data-key="${key}">${optionsHtml}</select>`;
+  }
+
+  // 4. SHOW EDIT SCREEN (DENGAN DROPDOWN OTOMATIS BERDASARKAN HEADER)
   function showEditScreen() {
     const editContainer = document.getElementById('edit-fields-container');
     editContainer.innerHTML = '';
@@ -322,11 +319,10 @@
       const cleanKey = key.trim().toLowerCase();
       let inputFieldHtml = '';
 
-      // A. PENANGANAN INPUT TANGGAL LAHIR (KALENDER)
+      // A. KALENDER TANGGAL LAHIR
       if (cleanKey.includes('tanggal lahir') || cleanKey.includes('tgl lahir')) {
         let formattedDate = '';
         if (value) {
-          // Normalisasi tanggal ke format YYYY-MM-DD
           const dateObj = new Date(value);
           if (!isNaN(dateObj.getTime())) {
             formattedDate = dateObj.toISOString().split('T')[0];
@@ -338,16 +334,31 @@
         }
         inputFieldHtml = `<input type="date" class="form-control edit-field" data-key="${key}" value="${formattedDate}">`;
       } 
-      // B. PENANGANAN DROPDOWN KEBUTUHAN KHUSUS
-      else if (cleanKey.includes('kebutuhan khusus')) {
-        let optionsHtml = '';
-        listKebutuhanKhusus.forEach(opt => {
-          const isSelected = (value && value.trim().toLowerCase() === opt.toLowerCase()) ? 'selected' : '';
-          optionsHtml += `<option value="${opt}" ${isSelected}>${opt}</option>`;
-        });
-        inputFieldHtml = `<select class="form-select edit-field" data-key="${key}">${optionsHtml}</select>`;
-      } 
-      // C. INPUT TEKS STANDAR
+      // B. DROPDOWN KEBUTUHAN KHUSUS
+      else if (cleanKey.includes('kebutuhan khusus') || cleanKey.includes('berkebutuhan khusus')) {
+        inputFieldHtml = createSelectHtml(key, value, listKebutuhanKhusus);
+      }
+      // C. DROPDOWN TEMPAT/JENIS TINGGAL
+      else if (cleanKey.includes('tempat tinggal') || cleanKey.includes('jenis tinggal')) {
+        inputFieldHtml = createSelectHtml(key, value, listTempatTinggal);
+      }
+      // D. DROPDOWN TRANSPORTASI
+      else if (cleanKey.includes('transportasi') || cleanKey.includes('moda transportasi')) {
+        inputFieldHtml = createSelectHtml(key, value, listTransportasi);
+      }
+      // E. DROPDOWN PENDIDIKAN (AYAH / IBU / WALI)
+      else if (cleanKey.includes('pendidikan')) {
+        inputFieldHtml = createSelectHtml(key, value, listPendidikan);
+      }
+      // F. DROPDOWN PEKERJAAN (AYAH / IBU / WALI)
+      else if (cleanKey.includes('pekerjaan')) {
+        inputFieldHtml = createSelectHtml(key, value, listPekerjaan);
+      }
+      // G. DROPDOWN PENGHASILAN (AYAH / IBU / WALI)
+      else if (cleanKey.includes('penghasilan')) {
+        inputFieldHtml = createSelectHtml(key, value, listPenghasilan);
+      }
+      // H. INPUT TEKS STANDAR
       else {
         inputFieldHtml = `<input type="text" class="form-control edit-field" data-key="${key}" value="${value || ''}">`;
       }
