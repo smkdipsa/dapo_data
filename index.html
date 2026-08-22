@@ -187,24 +187,14 @@
     document.body.style.removeProperty('padding-right');
   }
 
+  // PEMANGGILAN API TANPA BATAS TIMEOUT KETAT (OPSI STABIL)
   function callAPI(params, callback) {
     const cbName = 'cb_' + Math.floor(Math.random() * 1000000);
     var isCalled = false;
 
-    const timeoutTimer = setTimeout(() => {
-      if (!isCalled) {
-        isCalled = true;
-        delete window[cbName];
-        const el = document.getElementById(cbName);
-        if (el) el.remove();
-        callback({ status: 'failed', message: 'Waktu koneksi habis. Periksa koneksi internet Anda.' });
-      }
-    }, 15000);
-
     window[cbName] = function(data) {
       if (!isCalled) {
         isCalled = true;
-        clearTimeout(timeoutTimer);
         delete window[cbName];
         const el = document.getElementById(cbName);
         if (el) el.remove();
@@ -221,18 +211,16 @@
     script.onerror = function() {
       if (!isCalled) {
         isCalled = true;
-        clearTimeout(timeoutTimer);
         delete window[cbName];
         const el = document.getElementById(cbName);
         if (el) el.remove();
-        callback({ status: 'failed', message: 'Gagal terhubung ke Google Apps Script.' });
+        callback({ status: 'failed', message: 'Gagal terhubung ke Google Apps Script. Pastikan koneksi lancar.' });
       }
     };
 
     document.body.appendChild(script);
   }
 
-  // Helper Filter Kolom Rahasia/Non-Display
   function isIgnoredKey(key) {
     const cleanKey = key.trim().toLowerCase();
     return key.startsWith('Kolom_') || 
@@ -311,7 +299,6 @@
     });
   }
 
-  // Helper Pembuat Dropdown Dinamis
   function createSelectHtml(key, value, optionsArray) {
     let optionsHtml = '<option value="">-- Pilih --</option>';
     optionsArray.forEach(opt => {
@@ -332,7 +319,6 @@
       const cleanKey = key.trim().toLowerCase();
       let inputFieldHtml = '';
 
-      // A. KALENDER TANGGAL LAHIR
       if (cleanKey.includes('tanggal lahir') || cleanKey.includes('tgl lahir')) {
         let formattedDate = '';
         if (value) {
@@ -347,35 +333,27 @@
         }
         inputFieldHtml = `<input type="date" class="form-control edit-field" data-key="${key}" value="${formattedDate}">`;
       } 
-      // B. DROPDOWN LAYAK PIP
       else if (cleanKey.includes('layak pip')) {
         inputFieldHtml = createSelectHtml(key, value, listLayakPIP);
       }
-      // C. DROPDOWN KEBUTUHAN KHUSUS
       else if (cleanKey.includes('kebutuhan khusus') || cleanKey.includes('berkebutuhan khusus')) {
         inputFieldHtml = createSelectHtml(key, value, listKebutuhanKhusus);
       }
-      // D. DROPDOWN TEMPAT/JENIS TINGGAL
       else if (cleanKey.includes('tempat tinggal') || cleanKey.includes('jenis tinggal')) {
         inputFieldHtml = createSelectHtml(key, value, listTempatTinggal);
       }
-      // E. DROPDOWN TRANSPORTASI
       else if (cleanKey.includes('transportasi') || cleanKey.includes('moda transportasi')) {
         inputFieldHtml = createSelectHtml(key, value, listTransportasi);
       }
-      // F. DROPDOWN PENDIDIKAN
       else if (cleanKey.includes('pendidikan')) {
         inputFieldHtml = createSelectHtml(key, value, listPendidikan);
       }
-      // G. DROPDOWN PEKERJAAN
       else if (cleanKey.includes('pekerjaan')) {
         inputFieldHtml = createSelectHtml(key, value, listPekerjaan);
       }
-      // H. DROPDOWN PENGHASILAN
       else if (cleanKey.includes('penghasilan')) {
         inputFieldHtml = createSelectHtml(key, value, listPenghasilan);
       }
-      // I. INPUT TEKS STANDAR
       else {
         inputFieldHtml = `<input type="text" class="form-control edit-field" data-key="${key}" value="${value || ''}">`;
       }
