@@ -21,7 +21,7 @@
 
 <div class="container py-4 col-md-8 col-lg-6">
 
-  <!-- LAYAR 1: LOGIN -->
+  <!-- ================= LAYAR 1: LOGIN ================= -->
   <div id="screen-login" class="card card-custom">
     <div class="card-body p-4 text-center">
       <h4 class="fw-bold mb-1 text-primary">Pengecekan Data Diri Siswa</h4>
@@ -53,7 +53,7 @@
     </div>
   </div>
 
-  <!-- LAYAR 2: TAMPIL DATA & VALIDASI -->
+  <!-- ================= LAYAR 2: TAMPIL DATA & VALIDASI ================= -->
   <div id="screen-detail" class="card card-custom d-none">
     <div class="p-3 header-bg d-flex justify-content-between align-items-center">
       <div>
@@ -84,7 +84,7 @@
     </div>
   </div>
 
-  <!-- LAYAR 3: FORM EDIT DATA -->
+  <!-- ================= LAYAR 3: FORM EDIT DATA ================= -->
   <div id="screen-edit" class="card card-custom d-none">
     <div class="p-3 bg-warning text-dark header-bg rounded-top d-flex justify-content-between align-items-center">
       <h5 class="mb-0 fw-bold">Form Perubahan Data</h5>
@@ -110,7 +110,7 @@
 
 </div>
 
-<!-- Loading Modal -->
+<!-- Loading Overlay -->
 <div class="modal fade" id="loadingModal" data-bs-backdrop="static" tabindex="-1">
   <div class="modal-dialog modal-dialog-centered modal-sm">
     <div class="modal-content text-center p-4">
@@ -123,8 +123,8 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
 <script>
-  // TEMPELKAN URL WEB APP NEW DEPLOYMENT ANDA DI SINI
-  const API_URL = "PASANG_URL_WEB_APP_BARU_DI_SINI";
+  // URL Deployment Terbaru Anda
+  const API_URL = "https://script.google.com/macros/s/AKfycbxtCp9nOnRcov91E70xa1kaPwXmQtJ3b0oFqeElTPt0nUco7R1CrDFjmEu5UgU2MFI/exec";
   
   let currentStudentData = null;
   const loadingModal = new bootstrap.Modal(document.getElementById('loadingModal'));
@@ -148,19 +148,18 @@
     document.body.style.removeProperty('padding-right');
   }
 
-  // PEMANGGILAN API DENGAN TIMEOUT
+  // TEKNIK DYNAMIC SCRIPT INJECTION (BYPASS CORS)
   function callAPI(params, callback) {
     const cbName = 'cb_' + Math.floor(Math.random() * 1000000);
     var isCalled = false;
 
-    // Timeout 12 detik jika server menggantung
     const timeoutTimer = setTimeout(() => {
       if (!isCalled) {
         isCalled = true;
         delete window[cbName];
         const el = document.getElementById(cbName);
         if (el) el.remove();
-        callback({ status: 'failed', message: 'Waktu koneksi habis. Periksa koneksi internet atau URL deployment Apps Script Anda.' });
+        callback({ status: 'failed', message: 'Waktu koneksi habis. Periksa koneksi internet Anda.' });
       }
     }, 12000);
 
