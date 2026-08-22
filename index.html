@@ -16,7 +16,6 @@
     .data-label { font-weight: 600; color: #495057; font-size: 0.9rem; }
     .data-value { color: #212529; font-size: 0.95rem; word-break: break-word; }
     
-    /* Tombol Batal & Keluar Kontras */
     .btn-action-exit {
       background-color: #dc3545;
       color: #ffffff !important;
@@ -27,10 +26,7 @@
       box-shadow: 0 2px 6px rgba(0,0,0,0.2);
       transition: all 0.2s;
     }
-    .btn-action-exit:hover {
-      background-color: #bb2d3b;
-      transform: translateY(-1px);
-    }
+    .btn-action-exit:hover { background-color: #bb2d3b; transform: translateY(-1px); }
     
     .btn-action-cancel {
       background-color: #6c757d;
@@ -42,10 +38,7 @@
       box-shadow: 0 2px 6px rgba(0,0,0,0.15);
       transition: all 0.2s;
     }
-    .btn-action-cancel:hover {
-      background-color: #5c636a;
-      transform: translateY(-1px);
-    }
+    .btn-action-cancel:hover { background-color: #5c636a; transform: translateY(-1px); }
   </style>
 </head>
 <body>
@@ -163,6 +156,27 @@
   let currentStudentData = null;
   const loadingModal = new bootstrap.Modal(document.getElementById('loadingModal'));
 
+  // Daftar Resmi Opsi Kebutuhan Khusus DAPODIK
+  const listKebutuhanKhusus = [
+    "Tidak ada",
+    "netra (A)",
+    "rungu (B)",
+    "grahita ringan (C)",
+    "grahita sedang (C1)",
+    "daksa ringan (D)",
+    "daksa sedang (D1)",
+    "laras (E)",
+    "wicara (F)",
+    "hyperaktif (H)",
+    "cerdas istimewa (I)",
+    "bakat istimewa (J)",
+    "kesulitan belajar (K)",
+    "narkoba (N)",
+    "indigo (O)",
+    "down syndrome (P)",
+    "autis (Q)"
+  ];
+
   function togglePassword() {
     const passInput = document.getElementById('input-pass');
     const eyeIcon = document.getElementById('eye-icon');
@@ -250,7 +264,7 @@
     });
   });
 
-  // 2. RENDER DETAIL DATA SISWA (MEMFILTER KOLOM "NO")
+  // 2. RENDER DETAIL DATA SISWA
   function renderStudentData() {
     document.getElementById('disp-nama-header').textContent = currentStudentData.Nama || currentStudentData.NAMA || 'Detail Siswa';
     document.getElementById('disp-nis-header').textContent = `NIS: ${currentStudentData.NIS || currentStudentData.NIPD || '-'}`;
@@ -259,7 +273,6 @@
     container.innerHTML = '';
 
     for (const [key, value] of Object.entries(currentStudentData)) {
-      // Sembunyikan kolom "No" dan kolom tak bernama
       if (key.startsWith('Kolom_') || key.trim().toLowerCase() === 'no') continue;
       
       container.insertAdjacentHTML('beforeend', `
@@ -298,19 +311,51 @@
     });
   }
 
-  // 4. SHOW EDIT SCREEN (MEMFILTER KOLOM "NO")
+  // 4. SHOW EDIT SCREEN (DENGAN INPUT KALENDER & DROPDOWN KEBUTUHAN KHUSUS)
   function showEditScreen() {
     const editContainer = document.getElementById('edit-fields-container');
     editContainer.innerHTML = '';
 
     for (const [key, value] of Object.entries(currentStudentData)) {
-      // Sembunyikan kolom "No" dan kolom tak bernama
       if (key.startsWith('Kolom_') || key.trim().toLowerCase() === 'no') continue;
+      
+      const cleanKey = key.trim().toLowerCase();
+      let inputFieldHtml = '';
+
+      // A. PENANGANAN INPUT TANGGAL LAHIR (KALENDER)
+      if (cleanKey.includes('tanggal lahir') || cleanKey.includes('tgl lahir')) {
+        let formattedDate = '';
+        if (value) {
+          // Normalisasi tanggal ke format YYYY-MM-DD
+          const dateObj = new Date(value);
+          if (!isNaN(dateObj.getTime())) {
+            formattedDate = dateObj.toISOString().split('T')[0];
+          } else if (value.includes('-')) {
+            const parts = value.split('-');
+            if (parts[0].length === 4) formattedDate = value;
+            else if (parts[2].length === 4) formattedDate = `${parts[2]}-${parts[1].padStart(2,'0')}-${parts[0].padStart(2,'0')}`;
+          }
+        }
+        inputFieldHtml = `<input type="date" class="form-control edit-field" data-key="${key}" value="${formattedDate}">`;
+      } 
+      // B. PENANGANAN DROPDOWN KEBUTUHAN KHUSUS
+      else if (cleanKey.includes('kebutuhan khusus')) {
+        let optionsHtml = '';
+        listKebutuhanKhusus.forEach(opt => {
+          const isSelected = (value && value.trim().toLowerCase() === opt.toLowerCase()) ? 'selected' : '';
+          optionsHtml += `<option value="${opt}" ${isSelected}>${opt}</option>`;
+        });
+        inputFieldHtml = `<select class="form-select edit-field" data-key="${key}">${optionsHtml}</select>`;
+      } 
+      // C. INPUT TEKS STANDAR
+      else {
+        inputFieldHtml = `<input type="text" class="form-control edit-field" data-key="${key}" value="${value || ''}">`;
+      }
       
       editContainer.insertAdjacentHTML('beforeend', `
         <div class="mb-3">
           <label class="form-label small fw-semibold">${key}</label>
-          <input type="text" class="form-control edit-field" data-key="${key}" value="${value || ''}">
+          ${inputFieldHtml}
         </div>
       `);
     }
