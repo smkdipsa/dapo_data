@@ -16,6 +16,20 @@
     .data-label { font-weight: 600; color: #495057; font-size: 0.9rem; }
     .data-value { color: #212529; font-size: 0.95rem; word-break: break-word; }
     
+    /* Style Sub-Judul Kategori Data */
+    .section-divider {
+      background-color: #e7f1ff;
+      color: #0d6efd;
+      font-weight: 700;
+      font-size: 0.85rem;
+      letter-spacing: 0.5px;
+      padding: 8px 12px;
+      border-radius: 6px;
+      margin-top: 20px;
+      margin-bottom: 12px;
+      border-left: 4px solid #0d6efd;
+    }
+
     .btn-action-exit {
       background-color: #dc3545;
       color: #ffffff !important;
@@ -187,7 +201,6 @@
     document.body.style.removeProperty('padding-right');
   }
 
-  // PEMANGGILAN API TANPA BATAS TIMEOUT KETAT (OPSI STABIL)
   function callAPI(params, callback) {
     const cbName = 'cb_' + Math.floor(Math.random() * 1000000);
     var isCalled = false;
@@ -214,7 +227,7 @@
         delete window[cbName];
         const el = document.getElementById(cbName);
         if (el) el.remove();
-        callback({ status: 'failed', message: 'Gagal terhubung ke Google Apps Script. Pastikan koneksi lancar.' });
+        callback({ status: 'failed', message: 'Gagal terhubung ke Google Apps Script.' });
       }
     };
 
@@ -227,6 +240,21 @@
            cleanKey === 'no' || 
            cleanKey.includes('alasan layak pip') || 
            cleanKey.includes('alasan layak');
+  }
+
+  // Helper Penentu Sub-Judul Kelompok Data
+  function getSectionHeader(key) {
+    const cleanKey = key.trim().toLowerCase();
+    if (cleanKey === 'nama' || cleanKey === 'nama siswa') {
+      return '<div class="section-divider"><i class="bi bi-person-fill me-1"></i> DATA DIRI SISWA</div>';
+    } else if (cleanKey === 'nama ayah' || cleanKey === 'nama_ayah') {
+      return '<div class="section-divider"><i class="bi bi-person-badge me-1"></i> DATA DIRI AYAH KANDUNG</div>';
+    } else if (cleanKey === 'nama ibu' || cleanKey === 'nama_ibu') {
+      return '<div class="section-divider"><i class="bi bi-person-heart me-1"></i> DATA DIRI IBU KANDUNG</div>';
+    } else if (cleanKey === 'nama wali' || cleanKey === 'nama_wali') {
+      return '<div class="section-divider"><i class="bi bi-people-fill me-1"></i> DATA DIRI WALI (jika nama siswa ikut KK wali)</div>';
+    }
+    return '';
   }
 
   // 1. HANDLER LOGIN
@@ -263,7 +291,10 @@
     for (const [key, value] of Object.entries(currentStudentData)) {
       if (isIgnoredKey(key)) continue;
       
+      const sectionHeader = getSectionHeader(key);
+      
       container.insertAdjacentHTML('beforeend', `
+        ${sectionHeader}
         <div class="row data-row align-items-center">
           <div class="col-sm-4 data-label">${key}</div>
           <div class="col-sm-8 data-value">${value || '-'}</div>
@@ -317,6 +348,7 @@
       if (isIgnoredKey(key)) continue;
       
       const cleanKey = key.trim().toLowerCase();
+      const sectionHeader = getSectionHeader(key);
       let inputFieldHtml = '';
 
       if (cleanKey.includes('tanggal lahir') || cleanKey.includes('tgl lahir')) {
@@ -359,6 +391,7 @@
       }
       
       editContainer.insertAdjacentHTML('beforeend', `
+        ${sectionHeader}
         <div class="mb-3">
           <label class="form-label small fw-semibold">${key}</label>
           ${inputFieldHtml}
