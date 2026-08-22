@@ -253,6 +253,8 @@
       return '<div class="section-divider"><i class="bi bi-person-heart me-1"></i> DATA DIRI IBU KANDUNG</div>';
     } else if (cleanKey === 'nama wali' || cleanKey === 'nama_wali') {
       return '<div class="section-divider"><i class="bi bi-people-fill me-1"></i> DATA DIRI WALI (jika nama siswa ikut KK wali)</div>';
+    } else if (cleanKey.includes('rombel')) {
+      return '<div class="section-divider"><i class="bi bi-folder-fill me-1"></i> DATA PENDUKUNG</div>';
     }
     return '';
   }
